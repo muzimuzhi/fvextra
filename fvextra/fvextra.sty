@@ -288,12 +288,13 @@
   \hbox to \hsize{%
     \kern\leftmargin
     \hbox to \linewidth{%
-      \FV@LeftListNumber
+      %\FV@LeftListNumber % invoked by \FV@LineNumberBackground
       \FV@LeftListFrame
       \FancyVerbFormatLine{%
         \FancyVerbHighlightLine{%
           \FV@ObeyTabs{\FancyVerbFormatText{#1}}}}\hss
       \FV@RightListFrame
+      \FV@LineNumberBackground
       \FV@RightListNumber}%
     \hss}}
 \def\FV@BProcessLine#1{%
@@ -352,6 +353,7 @@
           \hbox to\z@{\hss\theFancyVerbLine\kern\FV@NumberSep}%
         \fi}{}%
     \fi}%
+  \let\FV@LineNumberBackground\FV@LeftListBackground
 }
 \def\FV@Numbers@right{%
   \let\FV@LeftListNumber\relax
@@ -390,6 +392,7 @@
           \hbox to\z@{\hss\theFancyVerbLine\kern\FV@NumberSep}%
         \fi}{}%
     \fi}%
+  \let\FV@LineNumberBackground\FV@RightListBackground
 }
 \def\FV@Numbers@both{%
   \def\FV@LeftListNumber{%
@@ -462,10 +465,22 @@
           \hbox to\z@{\hss\theFancyVerbLine\kern\FV@NumberSep}%
         \fi}{}%
     \fi}%
+  \def\FV@LineNumberBackground{\FV@LeftListBackground\FV@RightListBackground}
 }
 \define@key{FV}{highlightlines}{\def\FV@HighlightLinesList{#1}}%
 \fvset{highlightlines=}
-\define@key{FV}{highlightcolor}{\def\FancyVerbHighlightColor{#1}}%
+\define@key{FV}{highlightcolor}{%
+  \in@{,}{#1}%
+  \ifin@
+    \def\pickTwo##1,##2,{%
+      \def\FancyVerbHighlightOddLineColor{##1}%
+      \def\FancyVerbHighlightEvenLineColor{##2}}%
+    \pickTwo#1,
+  \else
+    \def\FancyVerbHighlightColor{#1}%
+  \fi}
+\let\FancyVerbHighlightOddLineColor\@empty
+\let\FancyVerbHighlightEvenLineColor\@empty
 \let\FancyVerbHighlightColor\@empty
 \ifcsname definecolor\endcsname
 \ifx\definecolor\relax
@@ -484,38 +499,46 @@
   \fi}
 \def\FancyVerbHighlightLine#1{#1}
 \def\FV@HighlightLine#1{%
-  \@tempcnta=\c@FancyVerbLine
-  \@tempcntb=\c@FancyVerbLine
-  \ifcsname FV@HighlightLine:\number\@tempcnta\endcsname
-    \advance\@tempcntb\m@ne
-    \ifcsname FV@HighlightLine:\number\@tempcntb\endcsname
-      \advance\@tempcntb\tw@
+  \ifx\FancyVerbHighlightOddLineColor\@empty
+    \@tempcnta=\c@FancyVerbLine
+    \@tempcntb=\c@FancyVerbLine
+    \ifcsname FV@HighlightLine:\number\@tempcnta\endcsname
+      \advance\@tempcntb\m@ne
       \ifcsname FV@HighlightLine:\number\@tempcntb\endcsname
-        \let\FV@HighlightLine@Next\FancyVerbHighlightLineMiddle
+        \advance\@tempcntb\tw@
+        \ifcsname FV@HighlightLine:\number\@tempcntb\endcsname
+          \let\FV@HighlightLine@Next\FancyVerbHighlightLineMiddle
+        \else
+          \let\FV@HighlightLine@Next\FancyVerbHighlightLineLast
+        \fi
       \else
-        \let\FV@HighlightLine@Next\FancyVerbHighlightLineLast
+        \advance\@tempcntb\tw@
+        \ifcsname FV@HighlightLine:\number\@tempcntb\endcsname
+          \let\FV@HighlightLine@Next\FancyVerbHighlightLineFirst
+        \else
+          \let\FV@HighlightLine@Next\FancyVerbHighlightLineSingle
+        \fi
       \fi
     \else
-      \advance\@tempcntb\tw@
-      \ifcsname FV@HighlightLine:\number\@tempcntb\endcsname
-        \let\FV@HighlightLine@Next\FancyVerbHighlightLineFirst
-      \else
-        \let\FV@HighlightLine@Next\FancyVerbHighlightLineSingle
-      \fi
+      \let\FV@HighlightLine@Next\FancyVerbHighlightLineNormal
     \fi
   \else
-    \let\FV@HighlightLine@Next\FancyVerbHighlightLineNormal
+    \ifodd\c@FancyVerbLine
+      \let\FV@HighlightLine@Next\FancyVerbHighlightOddLine
+    \else%
+      \let\FV@HighlightLine@Next\FancyVerbHighlightEvenLine
+    \fi
   \fi
   \FV@HighlightLine@Next{#1}%
 }
 \def\FancyVerbHighlightLineNormal#1{#1}
 \newlength{\FV@TmpLength}
-\def\FancyVerbHighlightLineFirst#1{%
+\def\FancyVerbHighlightLineBase#1#2{%
   \setlength{\FV@TmpLength}{\fboxsep}%
   \setlength{\fboxsep}{0pt}%
-  \colorbox{\FancyVerbHighlightColor}{%
+  \colorbox{#1}{%
     \setlength{\fboxsep}{\FV@TmpLength}%
-    \rlap{\strut#1}%
+    \rlap{\strut#2}%
     \hspace{\linewidth}%
     \ifx\FV@RightListFrame\relax\else
       \hspace{-\FV@FrameSep}%
@@ -528,11 +551,22 @@
   }%
   \hss
 }
+\def\FancyVerbHighlightLineFirst#1{%
+  \FancyVerbHighlightLineBase{\FancyVerbHighlightColor}}
+\def\FancyVerbHighlightOddLine{%
+  \FancyVerbHighlightLineBase{\FancyVerbHighlightOddLineColor}}
+\def\FancyVerbHighlightEvenLine{%
+  \FancyVerbHighlightLineBase{\FancyVerbHighlightEvenLineColor}}
 \let\FancyVerbHighlightLineMiddle\FancyVerbHighlightLineFirst
 \let\FancyVerbHighlightLineLast\FancyVerbHighlightLineFirst
 \let\FancyVerbHighlightLineSingle\FancyVerbHighlightLineFirst
 \def\FV@HighlightLinesPrep{%
   \ifx\FV@HighlightLinesList\@empty
+      \ifx\FancyVerbHighlightOddLineColor\@empty
+    \else
+      \let\FancyVerbHighlightLine\FV@HighlightLine
+      \expandafter\FV@HighlightLinesPrep@i
+    \fi
   \else
     \let\FancyVerbHighlightLine\FV@HighlightLine
     \expandafter\FV@HighlightLinesPrep@i
@@ -561,6 +595,52 @@
     \expandafter\FV@HighlightLinesParse@Range@Loop
   \fi}
 \g@addto@macro\FV@FormattingPrep@PreHook{\FV@HighlightLinesPrep}
+\define@key{FV}{highlightlinenumbercolor}{%
+  \in@{,}{#1}%
+    \ifin@
+    \def\pickTwo##1,##2,{%
+      \def\FancyVerbHighlightOddLineNumberColor{##1}%
+      \def\FancyVerbHighlightEvenLineNumberColor{##2}}%
+    \pickTwo#1,
+  \else
+    \def\FancyVerbHighlightLineNumberColor{#1}%
+  \fi}
+\newdimen\FV@LineNumberWidth
+\define@key{FV}{linenumberwidth}{%
+  \@tempdima=#1\relax
+  \edef\FV@LineNumberWidth{\number\@tempdima sp\relax}}
+\fvset{linenumberwidth=1em}
+\def\FV@NumberBackground{%
+  \def\ruleContent{%
+    \strut%
+    \ifFV@BreakLines
+      \rule[-\dimen@]{0pt}{\dimen@}%
+    \fi
+    \@tempdima=\FV@NumberSep
+    \advance\@tempdima\FV@LineNumberWidth
+    \hspace*{\@tempdima}}%
+  {\fboxsep=0pt
+    \ifodd\c@FancyVerbLine
+      \colorbox{\FancyVerbHighlightOddLineNumberColor}{\ruleContent}%
+    \else
+      \colorbox{\FancyVerbHighlightEvenLineNumberColor}{\ruleContent}%
+    \fi}%
+}
+\def\FV@LeftListBackground{%
+  \llap{%
+    \FV@NumberBackground
+    % invoke \FV@LeftListNumber after \FV@NumberBackground
+    \rlap{\FV@LeftListNumber\hspace*{\FV@NumberSep}}%
+    \hspace*{\linewidth}}%
+}
+\def\FV@RightListBackground{%
+  \rlap{\FV@NumberBackground}%
+}
+% TODO: causes error if \def to \@empty or \relax
+\def\FV@LineNumberBackground{}
+\let\FancyVerbHighlightOddLineNumberColor\@empty
+\let\FancyVerbHighlightEvenLineNumberColor\@empty
+\let\FancyVerbHighlightLineNumberColor\@empty
 \newcount\FV@LoopCount
 \newbox\FV@NCharsBox
 \def\FV@SetToWidthNChars#1#2{%
@@ -1324,23 +1404,25 @@
       \let\FV@SetLineBreakLast\relax
       \setcounter{FV@TrueTabCounter}{0}%
       \FV@SaveLineBox{#1}}%
-    \FV@LeftListNumber
+    %\FV@LeftListNumber % invoked by \FV@LineNumberBackground
     \FV@LeftListFrame
     \FancyVerbFormatLine{%
-      \FancyVerbHighlightLine{\usebox{\FV@LineBox}}}%
+      \FancyVerbHighlightLine{\dimen@=\dp\FV@LineBox\usebox{\FV@LineBox}}}%
     \FV@RightListFrame
+    \FV@LineNumberBackground
     \FV@RightListNumber
     \ifx\FV@Tab\FV@TrueTab@UseWidth
       \let\FV@Tab\FV@TrueTab
     \fi
   \else
-    \FV@LeftListNumber
+    %\FV@LeftListNumber % invoked by \FV@LineNumberBackground
     \FV@LeftListFrame
     \FancyVerbFormatLine{%
       \FancyVerbHighlightLine{%
         \parbox[t]{\FV@LineWidth}{%
           \noindent\strut\FV@ObeyTabs{\FancyVerbFormatText{#1}}\strut}}}%
     \FV@RightListFrame
+    \FV@LineNumberBackground
     \FV@RightListNumber
   \fi}%
   \hss}\baselineskip\z@\lineskip\z@}

@@ -562,7 +562,7 @@
 \let\FancyVerbHighlightLineSingle\FancyVerbHighlightLineFirst
 \def\FV@HighlightLinesPrep{%
   \ifx\FV@HighlightLinesList\@empty
-      \ifx\FancyVerbHighlightOddLineColor\@empty
+    \ifx\FancyVerbHighlightOddLineColor\@empty
     \else
       \let\FancyVerbHighlightLine\FV@HighlightLine
       \expandafter\FV@HighlightLinesPrep@i
@@ -611,20 +611,23 @@
   \edef\FV@LineNumberWidth{\number\@tempdima sp\relax}}
 \fvset{linenumberwidth=1em}
 \def\FV@NumberBackground{%
-  \def\ruleContent{%
-    \strut%
-    \ifFV@BreakLines
-      \rule[-\dimen@]{0pt}{\dimen@}%
-    \fi
-    \@tempdima=\FV@NumberSep
-    \advance\@tempdima\FV@LineNumberWidth
-    \hspace*{\@tempdima}}%
-  {\fboxsep=0pt
-    \ifodd\c@FancyVerbLine
-      \colorbox{\FancyVerbHighlightOddLineNumberColor}{\ruleContent}%
-    \else
-      \colorbox{\FancyVerbHighlightEvenLineNumberColor}{\ruleContent}%
-    \fi}%
+  \ifx\FancyVerbHighlightOddLineNumberColor\@empty
+  \else
+    \def\ruleContent{%
+      \strut%
+      \ifFV@BreakLines
+        \rule[-\dimen@]{0pt}{\dimen@}%
+      \fi
+      \@tempdima=\FV@NumberSep
+      \advance\@tempdima\FV@LineNumberWidth
+      \hspace*{\@tempdima}}%
+    {\fboxsep=0pt
+      \ifodd\c@FancyVerbLine
+        \colorbox{\FancyVerbHighlightOddLineNumberColor}{\ruleContent}%
+      \else
+        \colorbox{\FancyVerbHighlightEvenLineNumberColor}{\ruleContent}%
+      \fi}%
+  \fi
 }
 \def\FV@LeftListBackground{%
   \llap{%
